@@ -16,7 +16,7 @@ Plasma as Kinoite.
 | Codecs | full `ffmpeg`, GStreamer libav/bad-freeworld/ugly |
 | HW video | `mesa-va-drivers-freeworld` (H.264/HEVC on AMD); skipped for a day if RPM Fusion's build doesn't match Fedora's Mesa yet (warning in the build log) |
 | Gaming | `steam`, `steam-devices`, `gamescope`, `mangohud` (+ i686) |
-| Shell & CLI | `zsh`, `vim`, `btop`, `duf`, `fastfetch`, `glow`, `gum`, `jq`, `lsb_release`; archives: `lzip`, 7-Zip, `unrar` (RPM Fusion); `fuse-libs` for AppImages |
+| Shell & CLI | `zsh`, `vim`, `btop`, `duf`, `fastfetch`, `glow`, `gum`, `jq`, `lsb_release`, `gh` (GitHub CLI), `cosign` (upstream release binary); archives: `lzip`, 7-Zip, `unrar` (RPM Fusion); `fuse-libs` for AppImages |
 | Tools | `distrobox`, `libva-utils`, `vulkan-tools`, `ddcutil` (monitor control via DDC/CI), `nvtop` (GPU monitor), `compsize` (Btrfs on-disk size), Btrfs Assistant |
 | Defaults | `ntsync` loaded, monthly Btrfs scrub, Fractal Adjust udev rule (WebHID), staged auto-updates (never auto-reboot), cosign signature policy, one-time switch to Flathub-only Flatpaks, image metadata in `/usr/share/image-info.json` |
 

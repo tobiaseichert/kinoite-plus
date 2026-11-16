@@ -26,3 +26,17 @@ dnf5 -y install \
 
 # FUSE 2 library: needed to run AppImages (e.g. LM Studio)
 dnf5 -y install fuse-libs
+
+# GitHub CLI (Fedora package)
+dnf5 -y install gh
+
+# cosign isn't packaged in Fedora: install the latest upstream release
+# binary, checked against the release's checksum file.
+COSIGN_URL="https://github.com/sigstore/cosign/releases/latest/download"
+COSIGN_TMP="$(mktemp -d)"
+curl -fsSL --retry 3 -o "${COSIGN_TMP}/cosign-linux-amd64" "${COSIGN_URL}/cosign-linux-amd64"
+curl -fsSL --retry 3 -o "${COSIGN_TMP}/cosign_checksums.txt" "${COSIGN_URL}/cosign_checksums.txt"
+(cd "${COSIGN_TMP}" && grep -E '  cosign-linux-amd64$' cosign_checksums.txt | sha256sum -c -)
+install -Dm0755 "${COSIGN_TMP}/cosign-linux-amd64" /usr/bin/cosign
+rm -rf "${COSIGN_TMP}"
+cosign version
