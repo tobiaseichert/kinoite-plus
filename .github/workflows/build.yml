@@ -66,28 +66,43 @@ jobs:
             --tag "${{ steps.meta.outputs.image }}:build" \
             -f Containerfile .
 
-      # Repack the image into layers grouped by package (like Fedora's base),
-      # so updates only download what changed. --previous-build keeps the
-      # layer layout stable between daily builds. 1Password, which rpm no
-      # longer owns after the move, gets its own layer via the
-      # user.component xattr (see 25-1password.sh).
-      - name: Rechunk image
-        run: |
-          IMAGE="${{ steps.meta.outputs.image }}"
-          sudo podman run --rm --privileged \
-            -v /var/lib/containers:/var/lib/containers \
-            --entrypoint /usr/bin/rpm-ostree "${IMAGE}:build" \
-            compose build-chunked-oci --bootc --format-version=1 --max-layers 128 \
-            --previous-build "docker://${IMAGE}:latest" \
-            --from "${IMAGE}:build" \
-            --output "containers-storage:${IMAGE}:chunked"
-          sudo podman rmi "${IMAGE}:build"
-
+      # Log in before rechunking so the previous build can be read even while
+      # the package is still private.
       - name: Log in to GHCR
         if: github.event_name != 'pull_request'
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | \
             sudo podman login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      # Repack the image into layers grouped by package (like Fedora's base),
+      # so updates only download what changed. --previous-build keeps the
+      # layer layout stable between daily builds; it is left out when there
+      # is no previous image yet (first build). 1Password, which rpm no
+      # longer owns after the move, gets its own layer via the
+      # user.component xattr (see 25-1password.sh).
+      - name: Rechunk image
+        run: |
+          IMAGE="${{ steps.meta.outputs.image }}"
+          AUTH=/run/containers/0/auth.json
+          AUTH_ARGS=()
+          if sudo test -f "${AUTH}"; then
+            AUTH_ARGS=(-v "${AUTH}:/auth.json:ro" -e REGISTRY_AUTH_FILE=/auth.json)
+          fi
+          PREV_ARGS=()
+          if sudo skopeo inspect --raw "docker://${IMAGE}:latest" >/dev/null 2>&1; then
+            PREV_ARGS=(--previous-build "docker://${IMAGE}:latest")
+          else
+            echo "::notice::No previous ${IMAGE}:latest found, rechunking without --previous-build"
+          fi
+          sudo podman run --rm --privileged \
+            -v /var/lib/containers:/var/lib/containers \
+            "${AUTH_ARGS[@]}" \
+            --entrypoint /usr/bin/rpm-ostree "${IMAGE}:build" \
+            compose build-chunked-oci --bootc --format-version=1 --max-layers 128 \
+            "${PREV_ARGS[@]}" \
+            --from "${IMAGE}:build" \
+            --output "containers-storage:${IMAGE}:chunked"
+          sudo podman rmi "${IMAGE}:build"
 
       - name: Push
         id: push
