@@ -24,6 +24,40 @@ systemctl --global enable zed-install.service
 chmod 0755 /usr/libexec/flathub-migrate
 systemctl enable flathub-migrate.service
 
+# --- Photos: KDE Photos (Koko, Flatpak from flathub-migrate) instead of
+#     Gwenview. Plasma's defaults point every image type at Gwenview; switch
+#     the types Koko handles to Koko and drop Gwenview from the rest (those
+#     fall back to the next app that can open them).
+MIMEAPPS=/usr/share/applications/kde-mimeapps.list
+KOKO_TYPES="image/avif image/gif image/heif image/jpeg image/png image/bmp
+    image/x-eps image/x-icns image/x-ico image/x-portable-bitmap
+    image/x-portable-graymap image/x-portable-pixmap image/x-xbitmap
+    image/x-xpixmap image/tiff image/x-psd image/x-webp image/webp image/svg+xml"
+awk -v types="${KOKO_TYPES}" '
+    BEGIN { n = split(types, t); for (i = 1; i <= n; i++) koko[t[i]] = 1 }
+    /^[^#[].*=/ && /org\.kde\.gwenview\.desktop/ {
+        key = substr($0, 1, index($0, "=") - 1)
+        m = split(substr($0, index($0, "=") + 1), apps, ";")
+        out = ""
+        for (i = 1; i <= m; i++) {
+            if (apps[i] == "") continue
+            if (apps[i] == "org.kde.gwenview.desktop") {
+                if (!(key in koko)) continue
+                apps[i] = "org.kde.koko.desktop"
+            }
+            out = out (out == "" ? "" : ";") apps[i]
+        }
+        if (out != "") print key "=" out
+        next
+    }
+    { print }' "${MIMEAPPS}" > /tmp/kde-mimeapps.list
+# (`! grep` would not trip set -e, hence the explicit check)
+if grep -q 'org\.kde\.gwenview\.desktop' /tmp/kde-mimeapps.list; then
+    echo "Gwenview still referenced in ${MIMEAPPS}" >&2; exit 1
+fi
+grep -qx 'image/jpeg=org.kde.koko.desktop' /tmp/kde-mimeapps.list
+install -m0644 /tmp/kde-mimeapps.list "${MIMEAPPS}"
+
 # --- Signature policy so `bootc upgrade` verifies our cosign signatures
 dnf5 -y install jq
 REPO="${IMAGE_REGISTRY}/${IMAGE_NAME}"

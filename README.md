@@ -52,11 +52,15 @@ on the system as Flatpaks from Fedora's remote.
 `flathub-migrate.service` runs once after the first boot with network:
 
 1. adds and enables Flathub,
-2. moves every Fedora-remote app to Flathub (app data is kept),
+2. removes Gwenview (KDE Photos replaces it) and moves every other
+   Fedora-remote app to Flathub (app data is kept),
 3. removes the Fedora runtime and the `fedora` / `fedora-testing` remotes,
-4. installs Vorta (Borg backups), Chromium and Vermouth (Windows games via Proton)
-   from Flathub,
+4. installs Vorta (Borg backups), Chromium, Vermouth (Windows games via Proton)
+   and KDE Photos (Koko) from Flathub,
 5. writes `/var/lib/kinoite-plus/flathub-migrate.done` and never runs again.
+
+KDE Photos is also the default app for images: the build switches Plasma's
+defaults (`/usr/share/applications/kde-mimeapps.list`) from Gwenview to Koko.
 
 While Flathub isn't reachable it retries every minute. If single apps fail to
 install, the others still go ahead; the run is retried up to 5 times, then the

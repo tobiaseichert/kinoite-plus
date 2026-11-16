@@ -26,6 +26,11 @@ DEFAULT_APPS=(
     com.borgbase.Vorta                # Backups (Borg, bundled) to external drive/NAS/SSH
     org.chromium.Chromium             # WebHID tools (e.g. Fractal Adjust), Chromium testing
     com.dekomote.vermouth             # Windows games via Proton, made for KDE
+    org.kde.koko                      # KDE Photos, default image viewer
+)
+# Preinstalled apps that are removed instead of moved to Flathub
+DROP_APPS=(
+    org.kde.gwenview                  # replaced by KDE Photos (org.kde.koko)
 )
 [[ -e "${STAMP}" ]] && exit 0
 
@@ -62,6 +67,14 @@ fedora_refs() {
 
 failed=()
 keep_fedora=0
+
+# Remove dropped apps first (from whichever remote), so they aren't migrated
+for app in "${DROP_APPS[@]}"; do
+    if flatpak info --system "${app}" >/dev/null 2>&1; then
+        echo "Removing ${app}"
+        "${FP[@]}" uninstall "${app}" || failed+=("${app}")
+    fi
+done
 
 # Leftovers from an earlier run: already gone from Fedora, install them now
 if [[ -s "${PENDING}" ]]; then
